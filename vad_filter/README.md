@@ -89,11 +89,6 @@ VAD 필터링:                    1.34초 ( 72.8%)
 
 ## Go 버전과 비교
 
-### VAD Filter 파라메터 설정값
-- Threshold: 0.5 (기본값)
-- MinSilenceDurationMs: 100
-- SpeechPadMs: 30
-
 ### 비교 방법
 ```bash
 # 1. Go 버전 실행
@@ -107,6 +102,7 @@ python3 vad_test.py ../sample/audio.mp3
 # - 음성 구간 개수 비교
 # - 각 구간의 시작/종료 시간 비교 (±50ms 이내면 정상)
 # - 전체 처리 시간 비교
+python3 compare_results.py ./compare/golang_output.txt ./compare/python_output.txt result.png
 
 # 4. 시각적으로 비교해보고 싶으면
 python3 visualize_vad.py ./sample/audio.wav ./compare/golang_output.txt ./compare/python_output.txt result.png

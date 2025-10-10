@@ -24,34 +24,39 @@ plt.rcParams['axes.unicode_minus'] = False
 
 
 def parse_segments_from_log(log_file):
-    """로그 파일에서 음성 구간 파싱"""
-    segments = []
-    
-    # 여러 인코딩 시도
+    """로그 파일에서 음성 구간 (start,end) 리스트 파싱"""
     encodings = ['utf-8', 'utf-8-sig', 'cp949', 'euc-kr', 'latin-1']
     content = None
-    
-    for encoding in encodings:
+    for enc in encodings:
         try:
-            with open(log_file, 'r', encoding=encoding) as f:
+            with open(log_file, 'r', encoding=enc) as f:
                 content = f.read()
             break
         except UnicodeDecodeError:
             continue
-    
     if content is None:
-        # 모든 인코딩 실패시 바이너리로 읽고 에러 무시
         with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
-    
-    # "음성 구간 N: X.XXs ~ Y.YYs" 패턴 찾기
-    pattern = r'음성 구간 \d+: ([\d.]+)s ~ ([\d.]+)s'
-    
-    for match in re.finditer(pattern, content):
-        start = float(match.group(1))
-        end = float(match.group(2))
-        segments.append((start, end))
-    
+
+    # 1) 예전 포맷: "음성 구간 N: X.XXs ~ Y.YYs"
+    pat_old = r'음성\s*구간\s*\d+:\s*([\d.]+)s\s*~\s*([\d.]+)s'
+    # 2) 새 포맷: "   1: 24.49s ~ 27.22s (2.73s)"  ← 뒤의 (길이)는 옵션
+    pat_new = r'^\s*\d+:\s*([\d.]+)s\s*~\s*([\d.]+)s(?:\s*\([\d.]+s\))?'
+
+    segments, seen = [], set()
+
+    for pat in (pat_old, pat_new):
+        for m in re.finditer(pat, content, flags=re.MULTILINE):
+            start, end = float(m.group(1)), float(m.group(2))
+            if end >= start:
+                # 중복 방지 (로그에 두 패턴이 함께 있을 때 대비)
+                key = (round(start, 3), round(end, 3))
+                if key not in seen:
+                    seen.add(key)
+                    segments.append((start, end))
+
+    # 정렬
+    segments.sort(key=lambda x: x[0])
     return segments
 
 
