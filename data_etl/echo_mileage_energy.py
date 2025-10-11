@@ -207,10 +207,9 @@ def visualize_data(df):
     # 계절별 count 합쳐서 평균(mean)
     season_gas = df.groupby('계절')['현년_가스사용량'].mean().reset_index()
 
+    # 계절별로 정렬해서 표현하기
     season_order = ['봄', '여름', '가을', '겨울']
-    season_gas['계절'] = pd.Categorical(season_gas['계절'],
-                                          categories=season_order,
-                                          ordered=True)
+    season_gas['계절'] = pd.Categorical(season_gas['계절'], categories=season_order, ordered=True)
     season_gas = season_gas.sort_values('계절')
 
     plt.figure(figsize=(10, 6))
