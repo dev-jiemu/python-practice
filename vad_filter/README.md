@@ -108,6 +108,33 @@ python3 compare_results.py ./compare/golang_output.txt ./compare/python_output.t
 python3 visualize_vad.py ./sample/audio.wav ./compare/golang_output.txt ./compare/python_output.txt result.png
 ```
 
+
+## Go 에서 커맨드로 호출하기 위한 단일 스크립트
+### 사용방법
+```shell
+# JSON 경로를 직접 지정
+python make_filter_cli.py \
+  --in input.wav \
+  --out-audio output_vad.wav \
+  --out-segments output_vad.json
+
+# JSON 경로 생략 시: out-audio의 스템 + .json 으로 저장
+python make_filter_cli.py \
+  --in input.wav \
+  --out-audio ./out/filtered.wav
+```
+
+### 빌드 방법
+```shell
+pip install pyinstaller
+pyinstaller --onefile --name vad_cli \
+  --add-data silero_vad.onnx:. \
+  --hidden-import torch --hidden-import torchaudio \
+  vad_cli.py
+# 결과: dist/vad_cli (linux/mac), dist/vad_cli.exe (windows)
+```
+* 이후, 해당 파일을 Dockerfile 에서 도커 이미지 빌드할때 같이 빌드
+
 ## 참고
 
 ### ONNX Runtime 에러
