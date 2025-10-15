@@ -2,10 +2,8 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # GUI 없이 파일만 저장 (warning 방지)
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
 import librosa
 import librosa.display
-from scipy.io import wavfile
 import os
 import warnings
 
@@ -253,9 +251,9 @@ def plot_vad_comparison(original_path, go_filtered_path, python_filtered_path,
 # 사용 예시
 if __name__ == "__main__":
     # 파일 경로 설정
-    original_wav = "./sample/arirang_1_original.wav"
-    go_filtered_wav = "./sample/arirang_1_vad_filtered_golang_500.wav"
-    python_filtered_wav = "./sample/arirang_1_vad_filtered_python.wav"
+    original_wav = ""
+    go_filtered_wav = ""
+    python_filtered_wav = ""
 
     # 비교 실행 (필터링된 파일을 직접 비교)
     stats = plot_vad_comparison(
