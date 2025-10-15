@@ -31,7 +31,7 @@ Go 언어와 Python으로 각각 구현된 Silero VAD (Voice Activity Detection)
 python main.py
 ```
 
-### 3. 코드 내 경로 수정
+### 코드 내 경로 수정
 ```python
 if __name__ == "__main__":
     # 파일 경로 설정
