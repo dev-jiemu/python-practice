@@ -25,9 +25,17 @@ Go 언어와 Python으로 각각 구현된 Silero VAD (Voice Activity Detection)
   - 어느 필터가 더 공격적으로 필터링하는지 판단
 ```
 
+### 3. .wav 파일 무음구간 분석
+- 각 파일별로 무음구간이 겹치지 않는 부분 csv 파일로 저장
+
+### 4. json 파일 내용 분석
+- 세그먼트 전체 개수 비교
+- 세그먼트 별 시간 Gap 확인
+
+
 ## 🚀 사용 방법
 
-```python
+```shell
 python main.py
 ```
 
@@ -46,6 +54,14 @@ if __name__ == "__main__":
         python_filtered_wav,
         save_path="vad_comparison.png"
     )
+```
+
+```shell
+python3 compare_vad_wavs.py --go_wav ./go.wav --py_wav ./py.wav
+```
+
+```shell
+python3 analyze_whisper_segments.py [json-1] [json-2] --short_thr 0.3 --long_gap_thr 2.0
 ```
 
 ## 📦 의존성

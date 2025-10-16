@@ -14,6 +14,10 @@ warnings.filterwarnings('ignore', category=UserWarning)
 plt.rcParams['font.family'] = 'AppleGothic'  # macOS 기본 한글 폰트
 plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
 
+SOFT_GATE_GO = 0.01                # Go에서 사용한 softGateAtt 값과 동일하게
+EPS_GO = SOFT_GATE_GO * 0.9        # ← 0.9~1.0 배 권장 (예: 0.009)
+EPS_PY = 0.001                     # Python은 하드컷이면 그대로 OK
+
 def detect_voice_from_amplitude(audio, sr, silence_threshold=0.001, frame_length=0.02):
     """
     이미 필터링된 오디오에서 무음/음성 구간 감지
@@ -78,11 +82,19 @@ def plot_vad_comparison(original_path, go_filtered_path, python_filtered_path,
 
     # VAD 분석 (필터링된 결과에서 무음/음성 구간 추출)
     print("Analyzing voice activity from filtered files...")
-    silence_threshold = 0.001  # 낮은 값: 거의 0에 가까운 진폭 = 무음 처리된 구간
 
-    times_orig, voice_orig, rms_orig = detect_voice_from_amplitude(original, sr, silence_threshold)
-    times_go, voice_go, rms_go = detect_voice_from_amplitude(go_filtered, sr, silence_threshold)
-    times_py, voice_py, rms_py = detect_voice_from_amplitude(python_filtered, sr, silence_threshold)
+    times_orig, voice_orig, rms_orig = detect_voice_from_amplitude(original, sr, silence_threshold=EPS_PY)
+    times_go,   voice_go,   rms_go   = detect_voice_from_amplitude(go_filtered, sr, silence_threshold=EPS_GO)
+    times_py,   voice_py,   rms_py   = detect_voice_from_amplitude(python_filtered, sr, silence_threshold=EPS_PY)
+
+    # times_*는 프레임 경계라 길이가 voice_*보다 1 크게 만들어짐. 색칠할 땐 times[i]~times[i+1]라 +1 필요.
+    L = min(len(voice_go), len(voice_py), len(times_go) - 1, len(times_py) - 1)
+    voice_go = voice_go[:L]
+    voice_py = voice_py[:L]
+    times_go = times_go[:L + 1]
+    times_py = times_py[:L + 1]
+    rms_go   = rms_go[:L]   # 아래 RMS 패널도 같은 프레임 수로 맞춤
+    rms_py   = rms_py[:L]
 
     # 차이 계산
     diff_go_py = find_differences(voice_go, voice_py)
@@ -96,6 +108,11 @@ def plot_vad_comparison(original_path, go_filtered_path, python_filtered_path,
 
     # 전체 시간축
     time_axis = np.linspace(0, len(original)/sr, len(original))
+
+    print(f"[len] voice_go={len(voice_go)}, voice_py={len(voice_py)}, times_go={len(times_go)}, times_py={len(times_py)}")
+    print(f"[thr] EPS_GO={EPS_GO}, EPS_PY={EPS_PY}")
+    print(f"[rms] go min/med/max = {rms_go.min():.5f}/{np.median(rms_go):.5f}/{rms_go.max():.3f}")
+    print(f"[rms] py min/med/max = {rms_py.min():.5f}/{np.median(rms_py):.5f}/{rms_py.max():.3f}")
 
     # 1. 파형 비교
     ax1 = plt.subplot(5, 1, 1)
@@ -126,31 +143,25 @@ def plot_vad_comparison(original_path, go_filtered_path, python_filtered_path,
     ax4 = plt.subplot(5, 1, 4)
 
     # Go 결과 (상단)
-    for i in range(len(times_go)-1):
+    for i in range(L):
         if voice_go[i]:
-            ax4.axvspan(times_go[i], times_go[i+1],
-                        ymin=0.5, ymax=1.0,
+            ax4.axvspan(times_go[i], times_go[i+1], ymin=0.5, ymax=1.0,
                         alpha=0.5, color='#FF6B6B', label='Go: Voice' if i == 0 else '')
 
     # Python 결과 (하단)
-    for i in range(len(times_py)-1):
+    for i in range(L):
         if voice_py[i]:
-            ax4.axvspan(times_py[i], times_py[i+1],
-                        ymin=0.0, ymax=0.5,
+            ax4.axvspan(times_py[i], times_py[i+1], ymin=0.0, ymax=0.5,
                         alpha=0.5, color='#4ECDC4', label='Python: Voice' if i == 0 else '')
 
-    # 차이 구간 표시 - 색상으로 구분
-    for i in range(len(times_go)-1):
-        if i < len(go_only) and go_only[i]:
-            # Go만 음성 = 빨간색 (Python이 더 많이 자름)
-            ax4.axvspan(times_go[i], times_go[i+1],
-                        ymin=0.5, ymax=1.0, alpha=0.9,
-                        color='red', edgecolor='darkred', linewidth=0.5)
-        if i < len(py_only) and py_only[i]:
-            # Python만 음성 = 파란색 (Go가 더 많이 자름)
-            ax4.axvspan(times_py[i], times_py[i+1],
-                        ymin=0.0, ymax=0.5, alpha=0.9,
-                        color='blue', edgecolor='darkblue', linewidth=0.5)
+    # 차이 구간 표시
+    for i in range(L):
+        if go_only[i]:
+            ax4.axvspan(times_go[i], times_go[i+1], ymin=0.5, ymax=1.0,
+                        alpha=0.9, color='red', edgecolor='darkred', linewidth=0.5)
+        if py_only[i]:
+            ax4.axvspan(times_py[i], times_py[i+1], ymin=0.0, ymax=0.5,
+                        alpha=0.9, color='blue', edgecolor='darkblue', linewidth=0.5)
 
     plt.ylim(0, 1)
     plt.ylabel('Voice Activity')
@@ -167,10 +178,15 @@ def plot_vad_comparison(original_path, go_filtered_path, python_filtered_path,
 
     # 3. RMS (진폭) 레벨 비교
     ax5 = plt.subplot(5, 1, 5)
-    plt.plot(times_go, rms_go, label='Go Filtered', color='#FF6B6B', linewidth=2, alpha=0.8)
-    plt.plot(times_py, rms_py, label='Python Filtered', color='#4ECDC4', linewidth=2, alpha=0.8)
-    plt.axhline(y=silence_threshold, color='red', linestyle='--', linewidth=2,
-                label=f'Silence Threshold ({silence_threshold})')
+
+    # x축은 프레임 경계 times에서 마지막 요소 제외(길이 L에 맞춤)
+    plt.plot(times_go[:-1], rms_go, label='Go Filtered', color='#FF6B6B', linewidth=2, alpha=0.8)
+    plt.plot(times_py[:-1], rms_py, label='Python Filtered', color='#4ECDC4', linewidth=2, alpha=0.8)
+
+    # 파일별 임계선
+    plt.axhline(y=EPS_GO, color='#FF6B6B', linestyle='--', linewidth=2, label=f'Go Silence Th ({EPS_GO:g})')
+    plt.axhline(y=EPS_PY, color='#4ECDC4', linestyle='--', linewidth=2, label=f'Py Silence Th ({EPS_PY:g})')
+
     plt.ylabel('RMS Amplitude')
     plt.xlabel('Time (seconds)')
     plt.title('Amplitude Level Comparison (거의 0 = 무음 처리됨)', fontsize=12, fontweight='bold')
@@ -251,9 +267,9 @@ def plot_vad_comparison(original_path, go_filtered_path, python_filtered_path,
 # 사용 예시
 if __name__ == "__main__":
     # 파일 경로 설정
-    original_wav = ""
-    go_filtered_wav = ""
-    python_filtered_wav = ""
+    original_wav = "./sample/arirang_1_original.wav"
+    go_filtered_wav = "./sample/arirang_1_vad_filtered_optimize.wav"
+    python_filtered_wav = "./sample/arirang_1_vad_filtered_python.wav"
 
     # 비교 실행 (필터링된 파일을 직접 비교)
     stats = plot_vad_comparison(
