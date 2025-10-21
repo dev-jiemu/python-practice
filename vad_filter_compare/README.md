@@ -32,6 +32,8 @@ Go 언어와 Python으로 각각 구현된 Silero VAD (Voice Activity Detection)
 - 세그먼트 전체 개수 비교
 - 세그먼트 별 시간 Gap 확인
 
+### 5. .wav 파일 데이터 비교
+- 원본/처리본 각각 불러와서 전체 파형 및 오버레이, 차이신호, 곡선 표시
 
 ## 🚀 사용 방법
 
@@ -62,6 +64,10 @@ python3 compare_vad_wavs.py --go_wav ./go.wav --py_wav ./py.wav
 
 ```shell
 python3 analyze_whisper_segments.py [json-1] [json-2] --short_thr 0.3 --long_gap_thr 2.0
+```
+
+```shell
+python3 wav_compare.py --orig /sample/original.wav --proc /sample/processed.wav --start 0.0 --end 2.0
 ```
 
 ## 📦 의존성
