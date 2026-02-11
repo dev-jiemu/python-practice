@@ -1,8 +1,6 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form
-from pydantic import BaseModel
+from fastapi import FastAPI, File, UploadFile, Form
 import random
 import string
-from typing import Optional
 
 app = FastAPI()
 
@@ -68,9 +66,8 @@ async def stt_progress(
 async def health():
     return {"status": "ok"}
 
-# mock server : fast api
 if __name__ == "__main__":
-    print("\nFast API mock server create")
+    print("Fast API mock server create :)")
 
     import uvicorn
     uvicorn.run(app, host="localhost", port=8000)
