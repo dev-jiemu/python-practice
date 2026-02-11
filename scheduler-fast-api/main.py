@@ -22,6 +22,7 @@ async def stt_main(
         "status": "pending",
         "created_at": 0,
         "content_id": content_id,
+        "rid": rid,
         "job_id": job_id,
         "cpk": cpk
     }
