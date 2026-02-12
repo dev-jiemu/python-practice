@@ -1,6 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, Form
+from typing import List, Optional
 import random
-import string
 
 app = FastAPI()
 
@@ -9,56 +9,60 @@ request_status = {}
 @app.post("/stt/main")
 async def stt_main(
         file: UploadFile = File(...),
+        usr_api_token: str = Form(...),
+        filename: str = Form(...),
         content_id: str = Form(...),
-        rid: str = Form(...),
-        job_id: str = Form(...),
-        cpk: str = Form(...)
+        do_after_process: str = Form(...),
+        hotwords: Optional[List[str]] = Form(None)  # 배열은 Optional
 ):
-    # 4글자 랜덤 req_uid 생성
-    req_uid = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
 
-    # 상태 초기화 (pending으로 시작)
-    request_status[req_uid] = {
+    # 디버깅 추가
+    print(f"Received - file: {file.filename}, content_id: {content_id}")
+
+    # 4글자 랜덤 req_uid 생성
+    req_uid = random.randint(1, 9999)
+
+    # 상태 초기화
+    request_status[str(req_uid)] = {
         "status": "pending",
         "created_at": 0,
         "content_id": content_id,
-        "rid": rid,
-        "job_id": job_id,
-        "cpk": cpk
+        "filename": filename
     }
 
-    print(f"✅ Created req_uid: {req_uid} | content_id: {content_id} | job_id: {job_id} | cpk: {cpk} | file: {file.filename}")
+    print(f"✅ Created req_uid: {req_uid} | content_id: {content_id} | filename: {filename} | file: {file.filename}")
 
     return {
-        "req_uid": req_uid,
-        "success": True,
+        "req_uid": req_uid,  # 숫자로 반환
     }
 
-@app.post("/stt/progress/{req_uid}/{content_id}")
+@app.get("/stt/progress/{req_uid}/{content_id}")
 async def stt_progress(
         req_uid: str,
         content_id: str
 ):
+    print(f"📊 req_uid: {req_uid}, content_id: {content_id}")
+
     if req_uid not in request_status:
         return {
             "status": "pending",
             "content_id": content_id,
-            "req_uid": req_uid,
+            "req_uid": int(req_uid),
             "overall_progress": 0
         } # 다른 필드 많은데 어차피 이것만 쓸거라 mock 서버는 이것만 리턴
 
     status_info = request_status[req_uid]
     status_info["created_at"] += 1
 
-    if status_info["created_at"] >= 3:
-        # 30% 확률로 completed
-        if random.random() < 0.3:
+    if status_info["created_at"] >= 2:
+        # 70% 확률로 completed
+        if random.random() < 0.7:
             status_info["status"] = "completed"
             print(f"🎉 {req_uid} -> completed")
 
     return {
         "status": status_info["status"],
-        "req_uid": req_uid,
+        "req_uid": int(req_uid),
         "overall_progress": min(status_info["created_at"] * 10, 100),
         "content_id": content_id,
     }
@@ -67,6 +71,7 @@ async def stt_progress(
 async def health():
     return {"status": "ok"}
 
+# 빌드 할때 [pyinstaller --onefile --console mock_server.py]
 if __name__ == "__main__":
     print("Fast API mock server create :)")
 
