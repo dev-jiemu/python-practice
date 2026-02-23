@@ -54,129 +54,20 @@ fig, axes = plt.subplots(4, 1, figsize=(14, 28), sharex=False)
 df["total"] = df["count"] + df["pending"]
 
 pivot_count = df.pivot_table(index="time", columns="cpk", values="count", aggfunc="sum").fillna(0)
-pivot_count.plot(kind="bar", stacked=True, ax=axes[0], legend=True)
-
-pivot_pending = df.pivot_table(index="time", columns="cpk", values="pending", aggfunc="sum").fillna(0)
-pivot_pending.plot(kind="bar", stacked=True, ax=axes[1], legend=True)
-
-pivot_total = df.pivot_table(index="time", columns="cpk", values="total", aggfunc="sum").fillna(0)
-pivot_total.plot(kind="bar", stacked=True, ax=axes[2], legend=True)
-
-pivot_queued = df.pivot_table(index="time", columns="cpk", values="queued_at_start", aggfunc="sum").fillna(0)
-pivot_queued.plot(kind="bar", stacked=True, ax=axes[3], legend=True)
-
-# 첫 배치 기준 상위 MaxDedicatedUsers 개 cpk 추출
-MAX_DEDICATED = 3
-first_batch = df[df["time"] == df["time"].min()]
-first_batch_sorted = first_batch.sort_values("queued_at_start", ascending=False)
-dedicated_cpks = set(first_batch_sorted["cpk"].head(MAX_DEDICATED).tolist())
-
-# cpk별 색상 설정 (dedicated는 진하게, shared는 연하게)
-all_cpks = df["cpk"].unique()
-color_map = {}
-base_colors = plt.cm.tab10.colors
-for i, cpk in enumerate(all_cpks):
-    color = base_colors[i % len(base_colors)]
-    if cpk in dedicated_cpks:
-        color_map[cpk] = color  # 진한 색
-    else:
-        # 연하게 (alpha 효과를 위해 rgba로 변환)
-        color_map[cpk] = (*color[:3], 0.4)
-
-colors = [color_map[cpk] for cpk in pivot_count.columns]
-
-for ax in axes:
-    ax.set_xticklabels([t.strftime('%H:%M:%S') for t in pivot_count.index], rotation=45, ha='right')
-    for bars in ax.containers:import json
-import pandas as pd
-import matplotlib.pyplot as plt
-from datetime import datetime
-
-# mac 한글 폰트 설정
-plt.rcParams['font.family'] = 'AppleGothic'
-plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
-
-LOG_FILE = "scheduler.log"
-
-records = []
-
-with open(LOG_FILE, "r") as f:
-    for line in f:
-        line = line.strip()
-        if not line:
-            continue
-
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-
-        # scheduler metrics 로그만 필터링
-        if obj.get("msg") != "scheduler metrics":
-            continue
-
-        metrics = obj.get("metrics", {})
-        allocates = metrics.get("request_allocates", [])
-        if not allocates:
-            continue
-
-        time_str = obj.get("time", "")
-        ts = datetime.fromisoformat(time_str)
-
-        for item in allocates:
-            records.append({
-                "time": ts,
-                "cpk": item["cpk"],
-                "count": item["count"],
-                "pending": item["pending"],
-                "queued_at_start": item.get("queued_at_start", 0),  # 없으면 0
-            })
-
-df = pd.DataFrame(records)
-if df.empty:
-    print("No records found")
-    exit()
-
-fig, axes = plt.subplots(4, 1, figsize=(14, 28), sharex=False)
-
-# total count
-df["total"] = df["count"] + df["pending"]
-
-pivot_count = df.pivot_table(index="time", columns="cpk", values="count", aggfunc="sum").fillna(0)
 pivot_pending = df.pivot_table(index="time", columns="cpk", values="pending", aggfunc="sum").fillna(0)
 pivot_total = df.pivot_table(index="time", columns="cpk", values="total", aggfunc="sum").fillna(0)
 pivot_queued = df.pivot_table(index="time", columns="cpk", values="queued_at_start", aggfunc="sum").fillna(0)
 
-# 첫 배치 기준 상위 MaxDedicatedUsers 개 cpk 추출
-MAX_DEDICATED = 3
-first_batch = df[df["time"] == df["time"].min()]
-first_batch_sorted = first_batch.sort_values("queued_at_start", ascending=False)
-dedicated_cpks = set(first_batch_sorted["cpk"].head(MAX_DEDICATED).tolist())
-
-# cpk별 색상/해치 설정
+# cpk별 색상 설정
 all_cpks = df["cpk"].unique()
 base_colors = plt.cm.tab10.colors
 color_map = {cpk: base_colors[i % len(base_colors)] for i, cpk in enumerate(all_cpks)}
-
-# userCount가 MAX_DEDICATED 이하면 전부 dedicated로 처리 (해치 없음)
-if len(df["cpk"].unique()) <= MAX_DEDICATED:
-    hatch_map = {cpk: '' for cpk in all_cpks}
-else:
-    hatch_map = {cpk: '' if cpk in dedicated_cpks else '///' for cpk in all_cpks}
-
 colors = [color_map[cpk] for cpk in pivot_count.columns]
-hatches = [hatch_map[cpk] for cpk in pivot_count.columns]
 
-# plot 할 때 color만 적용
 pivot_count.plot(kind="bar", stacked=True, ax=axes[0], legend=True, color=colors)
 pivot_pending.plot(kind="bar", stacked=True, ax=axes[1], legend=True, color=colors)
 pivot_total.plot(kind="bar", stacked=True, ax=axes[2], legend=True, color=colors)
 pivot_queued.plot(kind="bar", stacked=True, ax=axes[3], legend=True, color=colors)
-
-# 해치는 queued 차트에만
-for bars, hatch in zip(axes[3].containers, hatches):
-    for bar in bars:
-        bar.set_hatch(hatch)
 
 for ax in axes:
     ax.set_xticklabels([t.strftime('%H:%M:%S') for t in pivot_count.index], rotation=45, ha='right')
