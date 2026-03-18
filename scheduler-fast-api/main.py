@@ -49,21 +49,21 @@ async def stt_progress(
             "content_id": content_id,
             "req_uid": int(req_uid),
             "overall_progress": 0
-        } # 다른 필드 많은데 어차피 이것만 쓸거라 mock 서버는 이것만 리턴
+        }
 
     status_info = request_status[req_uid]
-    status_info["created_at"] += 1
+    status_info["overall_progress"] = min(status_info.get("overall_progress", 0) + random.randint(5, 20), 100)
 
-    if status_info["created_at"] >= 2:
-        # 70% 확률로 completed
-        if random.random() < 0.7:
-            status_info["status"] = "completed"
-            print(f"🎉 {req_uid} -> completed")
+    if status_info["overall_progress"] >= 100:
+        status_info["status"] = "completed"
+        print(f"🎉 {req_uid} -> completed")
+    else:
+        status_info["status"] = "processing"
 
     return {
         "status": status_info["status"],
         "req_uid": int(req_uid),
-        "overall_progress": min(status_info["created_at"] * 10, 100),
+        "overall_progress": status_info["overall_progress"],
         "content_id": content_id,
     }
 
@@ -71,7 +71,7 @@ async def stt_progress(
 async def health():
     return {"status": "ok"}
 
-# 빌드 할때 [pyinstaller --onefile --console mock_server.py]
+# 빌드 할때 [pyinstaller --onefile --console main.py]
 if __name__ == "__main__":
     print("Fast API mock server create :)")
 
