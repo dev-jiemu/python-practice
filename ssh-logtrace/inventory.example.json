@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "inventory json 파일 예시"
+  ],
+  "ssh_opts": [
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "-o",
+    "LogLevel=ERROR"
+  ],
+  "areas": [
+    {
+      "name": "requester",
+      "hosts": [
+        "dev-01",
+        "dev-02"
+      ],
+      "sources": [
+        {
+          "name": "app",
+          "paths": [
+            "/var/log/user/app/requester/debug.log"
+          ]
+        }
+      ]
+    }
+  ]
+}
